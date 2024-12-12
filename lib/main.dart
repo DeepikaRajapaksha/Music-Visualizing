@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'dart:math';
 
 void main() {
@@ -11,78 +11,95 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Bar Wave Music Visualizer',
+      title: 'Bar Wave TTS Visualizer',
       theme: ThemeData.dark(),
-      home: MusicVisualizer(),
+      home: TextToSpeechVisualizer(),
     );
   }
 }
 
-class MusicVisualizer extends StatefulWidget {
+class TextToSpeechVisualizer extends StatefulWidget {
   @override
-  _MusicVisualizerState createState() => _MusicVisualizerState();
+  _TextToSpeechVisualizerState createState() => _TextToSpeechVisualizerState();
 }
 
-class _MusicVisualizerState extends State<MusicVisualizer>
+class _TextToSpeechVisualizerState extends State<TextToSpeechVisualizer>
     with SingleTickerProviderStateMixin {
-  final AudioPlayer _audioPlayer = AudioPlayer();
+  final FlutterTts _flutterTts = FlutterTts();
   late AnimationController _animationController;
+  bool _isSpeaking = false;
+  final TextEditingController _textController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _audioPlayer.setAsset('assets/sample_music.mp3'); // Add your music file to assets
-    _audioPlayer.play();
-
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
-    )..repeat();
+      duration: const Duration(milliseconds: 1000),
+    );
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
+    _flutterTts.stop();
     _animationController.dispose();
     super.dispose();
   }
 
-  void _playPauseAudio() async {
-    if (_audioPlayer.playing) {
-      await _audioPlayer.pause();
-      _animationController.stop();
-    } else {
-      await _audioPlayer.play();
+  Future<void> _speakText() async {
+    final text = _textController.text;
+    if (text.isNotEmpty) {
+      setState(() => _isSpeaking = true);
+
       _animationController.repeat();
+      await _flutterTts.setLanguage("en-US");
+      await _flutterTts.setPitch(1.0);
+      await _flutterTts.speak(text);
+
+      // Stop animation when TTS completes
+      _flutterTts.setCompletionHandler(() {
+        setState(() {
+          _isSpeaking = false;
+          _animationController.stop();
+        });
+      });
     }
-    setState(() {});
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Bar Wave Music Visualizer"),
+        title: const Text("Bar Wave TTS Visualizer"),
         centerTitle: true,
       ),
-      body: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Center(
-            child: CustomPaint(
-              size: const Size(300, 150), // Adjust size for visualization
-              painter: BarWaveVisualizerPainter(_animationController),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            TextField(
+              controller: _textController,
+              decoration: InputDecoration(
+                border: OutlineInputBorder(),
+                hintText: 'Enter text to speak',
+              ),
             ),
-          ),
-          const SizedBox(height: 40),
-          ElevatedButton.icon(
-            onPressed: _playPauseAudio,
-            icon: Icon(
-              _audioPlayer.playing ? Icons.pause : Icons.play_arrow,
+            const SizedBox(height: 20),
+            Center(
+              child: CustomPaint(
+                size: const Size(300, 150),
+                painter: BarWaveVisualizerPainter(_animationController),
+              ),
             ),
-            label: Text(_audioPlayer.playing ? "Pause" : "Play"),
-          ),
-        ],
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: _isSpeaking ? null : _speakText,
+              icon: Icon(_isSpeaking ? Icons.mic_off : Icons.mic),
+              label: Text(_isSpeaking ? "Speaking..." : "Speak"),
+            ),
+          ],
+        ),
       ),
     );
   }
