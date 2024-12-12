@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Dot Wave Music Visualizer',
+      title: 'Bar Wave Music Visualizer',
       theme: ThemeData.dark(),
       home: MusicVisualizer(),
     );
@@ -62,7 +62,7 @@ class _MusicVisualizerState extends State<MusicVisualizer>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Dot Wave Music Visualizer"),
+        title: const Text("Bar Wave Music Visualizer"),
         centerTitle: true,
       ),
       body: Column(
@@ -70,8 +70,8 @@ class _MusicVisualizerState extends State<MusicVisualizer>
         children: [
           Center(
             child: CustomPaint(
-              size: const Size(300, 300), // Adjust size for visualization
-              painter: DotWaveVisualizerPainter(_animationController),
+              size: const Size(300, 150), // Adjust size for visualization
+              painter: BarWaveVisualizerPainter(_animationController),
             ),
           ),
           const SizedBox(height: 40),
@@ -88,29 +88,42 @@ class _MusicVisualizerState extends State<MusicVisualizer>
   }
 }
 
-class DotWaveVisualizerPainter extends CustomPainter {
+class BarWaveVisualizerPainter extends CustomPainter {
   final Animation<double> animation;
 
-  DotWaveVisualizerPainter(this.animation) : super(repaint: animation);
+  BarWaveVisualizerPainter(this.animation) : super(repaint: animation);
 
   @override
   void paint(Canvas canvas, Size size) {
     final random = Random();
-    final double dotRadius = 5;
+    final double barWidth = 10;
     final double spacing = 15;
-    final int numberOfDots = (size.width / spacing).floor();
+    final int numberOfBars = (size.width / spacing).floor();
 
-    final paint = Paint()
-      ..color = Colors.purpleAccent
-      ..style = PaintingStyle.fill;
+    final List<Color> colors = [
+      Colors.red,
+      Colors.green,
+      Colors.blue,
+      Colors.yellow,
+      Colors.purple,
+    ];
 
-    for (int i = 0; i < numberOfDots; i++) {
-      final double waveHeight = size.height * (0.3 + 0.7 * random.nextDouble() * sin((animation.value + i) * 2 * pi));
+    for (int i = 0; i < numberOfBars; i++) {
+      final double barHeight = size.height * (0.3 + 0.7 * random.nextDouble() * sin((animation.value + i) * 2 * pi));
       final double x = i * spacing;
-      final double y = size.height - waveHeight;
+      final double y = size.height - barHeight;
 
-      paint.color = paint.color.withOpacity(0.5 + 0.5 * random.nextDouble());
-      canvas.drawCircle(Offset(x, y), dotRadius, paint);
+      final paint = Paint()
+        ..color = colors[i % colors.length]
+        ..style = PaintingStyle.fill;
+
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, y, barWidth, barHeight),
+          const Radius.circular(5),
+        ),
+        paint,
+      );
     }
   }
 
